@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Benefits Comparator</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f7f6f3;--surface:#fff;--border:#e0ddd6;--border2:#ccc9c0;
+  --text:#1a1917;--muted:#6b6860;--hint:#9e9b94;
+  --rad:10px;--rad-sm:6px;
+  --p0-pc:#185FA5;--p0-pl:#E6F1FB;--p0-pm:#378ADD;
+  --p1-pc:#0F6E56;--p1-pl:#E1F5EE;--p1-pm:#1D9E75;
+  --p2-pc:#7F3FB5;--p2-pl:#EEEDFE;--p2-pm:#9F6FD5;
+  --p3-pc:#A32D2D;--p3-pl:#FCEBEB;--p3-pm:#E24B4A;
+  --p4-pc:#854F0B;--p4-pl:#FAEEDA;--p4-pm:#EF9F27;
+  --p5-pc:#3B6D11;--p5-pl:#EAF3DE;--p5-pm:#639922;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:2rem 1rem}
+h1{font-size:1.4rem;font-weight:600;margin-bottom:.2rem}
+.subtitle{font-size:.85rem;color:var(--muted);margin-bottom:2rem}
+.app{max-width:900px;margin:0 auto}
+
+.plans-wrap{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:1.5rem;align-items:flex-start}
+.plan-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rad);padding:1.1rem;min-width:190px;flex:1}
+.plan-card-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem}
+.plan-name-input{font-size:.7rem;font-weight:700;letter-spacing:.1em;background:none;border:none;border-bottom:1px dashed currentColor;width:90px;outline:none;text-transform:uppercase;padding:0 0 1px}
+.remove-btn{background:none;border:none;cursor:pointer;color:var(--hint);font-size:.95rem;line-height:1;padding:0 2px;transition:color .15s}
+.remove-btn:hover{color:#c0392b}
+.add-plan-btn{background:var(--surface);border:1px dashed var(--border2);border-radius:var(--rad);padding:1.1rem;min-width:140px;flex:0 0 auto;cursor:pointer;color:var(--muted);font-size:.85rem;transition:all .15s;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.4rem;min-height:220px}
+.add-plan-btn:hover{background:#f1efea;color:var(--text)}
+
+.field{margin-bottom:.7rem}
+.field label{display:block;font-size:.75rem;color:var(--muted);margin-bottom:.25rem}
+.field input,.field select{width:100%;padding:.42rem .6rem;border:1px solid var(--border);border-radius:var(--rad-sm);font-size:.88rem;background:var(--bg);color:var(--text);transition:border .15s}
+.field input:focus,.field select:focus{outline:none;border-color:#378ADD}
+
+.section-title{font-size:.68rem;font-weight:700;letter-spacing:.1em;color:var(--hint);text-transform:uppercase;margin:1.25rem 0 .6rem}
+
+.slider-row{display:flex;align-items:center;gap:10px;margin-bottom:.75rem}
+.slider-row label{font-size:.82rem;color:var(--muted);min-width:150px}
+.slider-row input[type=range]{flex:1;accent-color:#378ADD}
+.slider-val{font-size:.82rem;font-weight:600;min-width:56px;text-align:right}
+
+.toggle-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1.25rem}
+.tog{font-size:.78rem;padding:.4rem .9rem;border-radius:var(--rad-sm);border:1px solid var(--border2);background:none;cursor:pointer;color:var(--muted);transition:all .15s;text-align:left;line-height:1.3}
+.tog:hover{border-color:#378ADD;color:#185FA5}
+.tog.on{background:#E6F1FB;color:#185FA5;border-color:#378ADD;font-weight:600}
+.tog-hint{font-size:.68rem;display:block;color:var(--hint);margin-top:.2rem;font-weight:400}
+.tog.on .tog-hint{color:#5a8fc4}
+
+.mode-row{display:flex;gap:0;margin-bottom:1.25rem;border:1px solid var(--border);border-radius:var(--rad-sm);overflow:hidden;width:fit-content}
+.mode-btn{padding:.4rem 1.1rem;font-size:.82rem;cursor:pointer;background:none;border:none;border-right:1px solid var(--border);color:var(--muted);transition:all .15s}
+.mode-btn:last-child{border-right:none}
+.mode-btn.on{background:var(--text);color:#fff;font-weight:500}
+
+.ranked-list{display:flex;flex-direction:column;gap:10px;margin-bottom:1.25rem}
+.rank-row{background:var(--surface);border:1px solid var(--border);border-radius:var(--rad);padding:.9rem 1.1rem;display:flex;align-items:center;gap:14px;transition:all .3s}
+.rank-row.rank-1{border-left-width:3px}
+.rank-num{font-size:1.05rem;font-weight:700;color:var(--hint);min-width:20px}
+.rank-1 .rank-num{font-size:1.15rem}
+.rank-name{font-size:.82rem;font-weight:700;min-width:64px}
+.rank-bars{flex:1;min-width:0}
+.rank-breakdown{font-size:.72rem;color:var(--hint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rank-bar-wrap{height:7px;background:var(--bg);border-radius:4px;overflow:hidden;border:1px solid var(--border);margin-top:5px}
+.rank-bar{height:100%;border-radius:4px;transition:width .4s ease}
+.rank-total{font-size:.9rem;font-weight:600;min-width:72px;text-align:right}
+.rank-delta{font-size:.75rem;color:var(--muted);min-width:90px;text-align:right}
+.winner-badge{font-size:.68rem;padding:.15rem .5rem;border-radius:20px;font-weight:700;white-space:nowrap}
+
+.scenarios{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:1.25rem}
+@media(max-width:500px){.scenarios{grid-template-columns:1fr}}
+.sc-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rad-sm);padding:.75rem;text-align:center}
+.sc-label{font-size:.68rem;color:var(--hint);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.25rem}
+.sc-winner{font-size:.85rem;font-weight:600;margin-bottom:.1rem}
+.sc-diff{font-size:.75rem;color:var(--muted)}
+
+.notes{background:#fffdf7;border:1px solid #e5dfc8;border-radius:var(--rad);padding:.85rem 1rem;font-size:.82rem;color:#5a5240;line-height:1.9;margin-bottom:1rem}
+.notes p{margin-bottom:.2rem}.notes p:last-child{margin-bottom:0}
+.hsa-box{background:#FAEEDA;border:1px solid #d4a84b;border-radius:var(--rad-sm);padding:.75rem 1rem;font-size:.82rem;color:#854F0B;line-height:1.7;margin-bottom:1rem}
+
+.donate-bar{margin-top:2.5rem;padding-top:1.5rem;border-top:1px solid var(--border);text-align:center}
+.donate-bar p{font-size:.82rem;color:var(--muted);margin-bottom:.75rem}
+.donate-btn{display:inline-block;padding:.55rem 1.5rem;background:#FFDD00;color:#000;font-weight:700;font-size:.88rem;border-radius:20px;text-decoration:none;transition:opacity .15s}
+.donate-btn:hover{opacity:.85}
+.donate-note{font-size:.72rem;color:var(--hint);margin-top:.5rem}
+footer{margin-top:1.5rem;font-size:.72rem;color:var(--hint);text-align:center;line-height:1.8}
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>Benefits Comparator</h1>
+  <p class="subtitle">Add your plans · adjust expected usage · see them ranked cheapest to most expensive</p>
+
+  <div class="section-title">plans</div>
+  <div class="plans-wrap" id="plans-wrap">
+    <button class="add-plan-btn" id="add-btn" onclick="addPlan()">
+      <span style="font-size:1.5rem">+</span>
+      <span>Add a plan</span>
+    </button>
+  </div>
+
+  <div class="section-title">scenario</div>
+  <div class="mode-row">
+    <button class="mode-btn on" id="m-typical" onclick="setMode('typical')">Typical year</button>
+    <button class="mode-btn" id="m-best" onclick="setMode('best')">Best case</button>
+    <button class="mode-btn" id="m-worst" onclick="setMode('worst')">Worst case</button>
+  </div>
+
+  <div class="slider-row">
+    <label>Primary care visits</label>
+    <input type="range" id="s-pcp" min="0" max="20" step="1" value="4" oninput="sv('v-pcp',this.value,'');calc()">
+    <span class="slider-val" id="v-pcp">4</span>
+  </div>
+  <div class="slider-row">
+    <label>Specialist visits</label>
+    <input type="range" id="s-spec" min="0" max="20" step="1" value="2" oninput="sv('v-spec',this.value,'');calc()">
+    <span class="slider-val" id="v-spec">2</span>
+  </div>
+  <div class="slider-row">
+    <label>Rx fills / year</label>
+    <input type="range" id="s-rx" min="0" max="52" step="1" value="12" oninput="sv('v-rx',this.value,'');calc()">
+    <span class="slider-val" id="v-rx">12</span>
+  </div>
+  <div class="slider-row">
+    <label>Other medical costs ($)</label>
+    <input type="range" id="s-other" min="0" max="20000" step="100" value="0" oninput="sv('v-other',this.value,'$');calc()">
+    <span class="slider-val" id="v-other">$0</span>
+  </div>
+  <div class="slider-row" id="hsa-slider-row" style="display:none">
+    <label>HSA contribution / yr ($)</label>
+    <input type="range" id="s-hsa" min="0" max="4300" step="100" value="2000" oninput="sv('v-hsa',this.value,'$');calc()">
+    <span class="slider-val" id="v-hsa">$2,000</span>
+  </div>
+
+  <div class="section-title">situation flags</div>
+  <div class="toggle-row">
+    <button class="tog" id="t-preg" onclick="toggleFlag('preg',this)">
+      Pregnancy planned
+      <span class="tog-hint">↑ specialist visits &amp; other costs</span>
+    </button>
+    <button class="tog" id="t-chronic" onclick="toggleFlag('chronic',this)">
+      Chronic condition
+      <span class="tog-hint">↑ Rx fills &amp; specialist visits</span>
+    </button>
+    <button class="tog" id="t-healthy" onclick="toggleFlag('healthy',this)">
+      Generally healthy
+      <span class="tog-hint">↓ all usage to minimum</span>
+    </button>
+    <button class="tog" id="t-mental" onclick="toggleFlag('mental',this)">
+      Mental health visits
+      <span class="tog-hint">↑ specialist visits</span>
+    </button>
+    <button class="tog" id="t-network" onclick="toggleFlag('network',this)">
+      Network matters
+      <span class="tog-hint">Reminder to verify providers</span>
+    </button>
+    <button class="tog" id="t-fsa" onclick="toggleFlag('fsa',this)">
+      FSA offered
+      <span class="tog-hint">Note about FSA tax savings</span>
+    </button>
+  </div>
+
+  <div class="section-title">best · typical · worst case — winner</div>
+  <div class="scenarios">
+    <div class="sc-card"><div class="sc-label">Best case</div><div class="sc-winner" id="scw-best">—</div><div class="sc-diff" id="scd-best">—</div></div>
+    <div class="sc-card"><div class="sc-label">Typical year</div><div class="sc-winner" id="scw-typ">—</div><div class="sc-diff" id="scd-typ">—</div></div>
+    <div class="sc-card"><div class="sc-label">Worst case</div><div class="sc-winner" id="scw-worst">—</div><div class="sc-diff" id="scd-worst">—</div></div>
+  </div>
+
+  <div class="section-title">ranked — cheapest to most expensive</div>
+  <div class="ranked-list" id="ranked-list"></div>
+
+  <div id="hsa-box" class="hsa-box" style="display:none"></div>
+  <div id="flag-notes" class="notes" style="display:none"></div>
+
+  <div class="donate-bar">
+    <p>Found this useful? No pressure, but coffee is always appreciated ☕</p>
+    <a class="donate-btn" href="https://buymeacoffee.com/philipfj108" target="_blank" rel="noopener">Buy me a coffee</a>
+  </div>
+  <footer>Estimates only · not financial or benefits advice · verify with your plan documents<br>Built with Claude · <a href="https://claude.ai" style="color:var(--hint)">claude.ai</a></footer>
+</div>
+
+<script>
+const PALETTE=[
+  {pc:'#185FA5',pl:'#E6F1FB',pm:'#378ADD'},
+  {pc:'#0F6E56',pl:'#E1F5EE',pm:'#1D9E75'},
+  {pc:'#7F3FB5',pl:'#EEEDFE',pm:'#9F6FD5'},
+  {pc:'#A32D2D',pl:'#FCEBEB',pm:'#E24B4A'},
+  {pc:'#854F0B',pl:'#FAEEDA',pm:'#EF9F27'},
+  {pc:'#3B6D11',pl:'#EAF3DE',pm:'#639922'},
+];
+const LETTERS='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+let plans=[];
+let planCounter=0;
+const flags={preg:false,chronic:false,healthy:false,mental:false,network:false,fsa:false};
+let mode='typical';
+
+const FLAG_EFFECTS={
+  preg:   {pcp:6, spec:8,  rx:12, other:3000},
+  chronic:{pcp:6, spec:4,  rx:36, other:1000},
+  healthy:{pcp:1, spec:0,  rx:0,  other:0},
+  mental: {pcp:null,spec:8,rx:null,other:null},
+};
+
+function sv(id,v,prefix){
+  const el=document.getElementById(id);
+  if(el) el.textContent=prefix+parseInt(v).toLocaleString();
+}
+function gv(id){return parseFloat(document.getElementById(id).value)||0}
+function fmt(n){return '$'+Math.round(n).toLocaleString()}
+
+function setSlider(id,val,vid,prefix){
+  const el=document.getElementById(id);
+  if(el){el.value=val;sv(vid,val,prefix);}
+}
+
+function applyFlagSliders(){
+  const base={typical:{pcp:4,spec:2,rx:12,other:0},best:{pcp:0,spec:0,rx:0,other:0},worst:{pcp:8,spec:4,rx:24,other:5000}};
+  let v=Object.assign({},base[mode]);
+  if(flags.healthy){v={pcp:1,spec:0,rx:0,other:0}}
+  else{
+    Object.entries(FLAG_EFFECTS).forEach(([k,fx])=>{
+      if(!flags[k]||k==='healthy') return;
+      if(fx.pcp!=null) v.pcp=Math.max(v.pcp,fx.pcp);
+      if(fx.spec!=null) v.spec=Math.max(v.spec,fx.spec);
+      if(fx.rx!=null) v.rx=Math.max(v.rx,fx.rx);
+      if(fx.other!=null) v.other=Math.max(v.other,fx.other);
+    });
+  }
+  setSlider('s-pcp',v.pcp,'v-pcp','');
+  setSlider('s-spec',v.spec,'v-spec','');
+  setSlider('s-rx',v.rx,'v-rx','');
+  setSlider('s-other',v.other,'v-other','$');
+}
+
+function toggleFlag(k,el){
+  if(k==='healthy'&&!flags[k]){
+    ['preg','chronic','mental'].forEach(x=>{if(flags[x]){flags[x]=false;document.getElementById('t-'+x).classList.remove('on')}});
+  } else if(!['healthy','network','fsa'].includes(k)&&!flags[k]){
+    if(flags.healthy){flags.healthy=false;document.getElementById('t-healthy').classList.remove('on')}
+  }
+  flags[k]=!flags[k];
+  el.classList.toggle('on',flags[k]);
+  applyFlagSliders();
+  calc();
+}
+
+function setMode(m){
+  mode=m;
+  ['typical','best','worst'].forEach(x=>document.getElementById('m-'+x).classList.toggle('on',x===m));
+  applyFlagSliders();
+  calc();
+}
+
+function nextLetter(){
+  const used=plans.map(p=>p.letter);
+  for(let i=0;i<LETTERS.length;i++){if(!used.includes(LETTERS[i]))return LETTERS[i]}
+  return String(plans.length+1);
+}
+
+function pVal(p,f){return parseFloat(document.getElementById(p.id+'-'+f).value)||0}
+function pStr(p,f){return document.getElementById(p.id+'-'+f).value}
+
+function estOOP(p,pcp,spec,rx,other){
+  const ded=pVal(p,'ded'),coins=pVal(p,'coins'),oopMax=pVal(p,'oop');
+  const copays=pcp*pVal(p,'copay')+spec*pVal(p,'spec')+rx*pVal(p,'rx');
+  const afterDed=Math.max(0,other-ded);
+  return Math.min(copays+Math.min(other,ded)+afterDed*(coins/100),oopMax);
+}
+
+function planTotal(p,pcp,spec,rx,other,hsaC){
+  const prem=pVal(p,'prem')*12;
+  const oop=estOOP(p,pcp,spec,rx,other);
+  const hsaSave=(parseInt(pStr(p,'hsa'))||0)?hsaC*0.25:0;
+  return{prem,oop,hsaSave,total:prem+oop-hsaSave};
+}
+
+function scenarioWinner(pcpV,specV,rxV,otherV,hsaC){
+  if(!plans.length) return{name:'—',diff:0,p:null};
+  const rs=plans.map(p=>({name:document.getElementById(p.id+'-name').value||p.letter,total:planTotal(p,pcpV,specV,rxV,otherV,hsaC).total,p}));
+  rs.sort((a,b)=>a.total-b.total);
+  return{name:rs[0].name,diff:rs.length>1?Math.abs(rs[0].total-rs[1].total):0,p:rs[0].p};
+}
+
+function renderSC(wid,did,winner){
+  const w=document.getElementById(wid),d=document.getElementById(did);
+  if(!plans.length||!winner.p){w.textContent='—';w.style.color='';d.textContent='';return}
+  const col=PALETTE[plans.indexOf(winner.p)%PALETTE.length];
+  w.textContent=winner.name;
+  w.style.color=col.pc;
+  d.textContent=winner.diff<150?'too close':'saves ~'+fmt(winner.diff);
+}
+
+function calc(){
+  if(!plans.length){
+    document.getElementById('ranked-list').innerHTML='<div style="color:var(--hint);font-size:.85rem;padding:.5rem 0">Add at least one plan above to see results.</div>';
+    return;
+  }
+  const pcp=gv('s-pcp'),spec=gv('s-spec'),rx=gv('s-rx'),other=gv('s-other'),hsaC=gv('s-hsa');
+
+  const anyHsa=plans.some(p=>(parseInt(pStr(p,'hsa'))||0)>0);
+  document.getElementById('hsa-slider-row').style.display=anyHsa?'flex':'none';
+
+  const results=plans.map(p=>{
+    const name=document.getElementById(p.id+'-name').value||p.letter;
+    const t=planTotal(p,pcp,spec,rx,other,hsaC);
+    const col=PALETTE[plans.indexOf(p)%PALETTE.length];
+    return{p,name,...t,col};
+  });
+  results.sort((a,b)=>a.total-b.total);
+  const maxT=results[results.length-1]?.total||1;
+  const minT=results[0]?.total||0;
+
+  document.getElementById('ranked-list').innerHTML=results.map((r,i)=>{
+    const barPct=Math.round(r.total/maxT*100);
+    const delta=i===0?`<span class="winner-badge" style="background:${r.col.pl};color:${r.col.pc}">Best pick</span>`
+      :'+'+fmt(r.total-minT)+' vs best';
+    const breakdown=`Premium ${fmt(r.prem)} + OOP est. ${fmt(r.oop)}${r.hsaSave>0?' − HSA '+fmt(r.hsaSave):''}`;
+    return`<div class="rank-row${i===0?' rank-1':''}" style="${i===0?`border-left-color:${r.col.pc};`:''}">
+      <div class="rank-num" style="${i===0?`color:${r.col.pc}`:''}">${i+1}</div>
+      <div class="rank-name" style="color:${r.col.pc}">${r.name}</div>
+      <div class="rank-bars">
+        <div class="rank-breakdown">${breakdown}</div>
+        <div class="rank-bar-wrap"><div class="rank-bar" style="width:${barPct}%;background:${r.col.pm}"></div></div>
+      </div>
+      <div class="rank-total" style="${i===0?`color:${r.col.pc}`:''}">${fmt(r.total)}</div>
+      <div class="rank-delta">${delta}</div>
+    </div>`;
+  }).join('');
+
+  // scenario cards
+  renderSC('scw-typ','scd-typ',scenarioWinner(4,2,12,0,hsaC));
+  renderSC('scw-best','scd-best',scenarioWinner(0,0,0,0,hsaC));
+  renderSC('scw-worst','scd-worst',scenarioWinner(8,4,24,5000,hsaC));
+
+  // HSA box
+  const hsaPs=plans.filter(p=>(parseInt(pStr(p,'hsa'))||0)>0);
+  const hb=document.getElementById('hsa-box');
+  if(hsaPs.length){
+    const names=hsaPs.map(p=>document.getElementById(p.id+'-name').value||p.letter).join(', ');
+    hb.style.display='block';
+    hb.innerHTML=`<strong>HSA note:</strong> ${names} ${hsaPs.length>1?'are':'is'} HSA-eligible. Tax savings estimated at 25% — your rate may differ. 2025 limits: $4,300 (self) / $8,550 (family). HSA funds roll over year to year and can offset a higher deductible over time.`;
+  } else hb.style.display='none';
+
+  // flag notes
+  const notes=[];
+  if(flags.preg) notes.push('🤰 Pregnancy: your real ceiling is each plan\'s OOP max — that\'s what a delivery year typically costs.');
+  if(flags.chronic) notes.push('💊 Chronic condition: you\'ll likely hit your deductible every year, so a lower deductible often beats a lower premium.');
+  if(flags.mental) notes.push('🧠 Mental health: check whether therapy copays count toward the deductible or sit in a separate behavioral health bucket.');
+  if(flags.network) notes.push('🏥 Network: verify your current doctors accept each plan before deciding — out-of-network costs dwarf everything else here.');
+  if(flags.fsa) notes.push('💳 FSA: if no HSA is available, an FSA shelters up to $3,300/yr pre-tax — worth factoring into your premium comparison.');
+  const fn=document.getElementById('flag-notes');
+  if(notes.length){fn.style.display='block';fn.innerHTML=notes.map(n=>`<p>${n}</p>`).join('')}
+  else fn.style.display='none';
+}
+
+function addPlan(d){
+  d=d||{prem:200,ded:2000,oop:6000,coins:20,copay:30,spec:60,rx:15,hsa:0};
+  const id='p'+planCounter++;
+  const letter=nextLetter();
+  const col=PALETTE[plans.length%PALETTE.length];
+  plans.push({id,letter,col});
+
+  const card=document.createElement('div');
+  card.className='plan-card';
+  card.id='card-'+id;
+  card.style.borderTop=`3px solid ${col.pm}`;
+  card.innerHTML=`
+    <div class="plan-card-top">
+      <input class="plan-name-input" id="${id}-name" value="Plan ${letter}" style="color:${col.pc};border-bottom-color:${col.pc}" oninput="calc()">
+      <button class="remove-btn" onclick="removePlan('${id}')" title="Remove plan" style="display:${plans.length>1?'block':'none'}">✕</button>
+    </div>
+    <div class="field"><label>Monthly premium ($)</label><input type="number" id="${id}-prem" value="${d.prem}" min="0"></div>
+    <div class="field"><label>Annual deductible ($)</label><input type="number" id="${id}-ded" value="${d.ded}" min="0"></div>
+    <div class="field"><label>Out-of-pocket max ($)</label><input type="number" id="${id}-oop" value="${d.oop}" min="0"></div>
+    <div class="field"><label>Coinsurance after deductible (%)</label><input type="number" id="${id}-coins" value="${d.coins}" min="0" max="100"></div>
+    <div class="field"><label>Primary care copay ($)</label><input type="number" id="${id}-copay" value="${d.copay}" min="0"></div>
+    <div class="field"><label>Specialist copay ($)</label><input type="number" id="${id}-spec" value="${d.spec}" min="0"></div>
+    <div class="field"><label>Generic Rx copay ($)</label><input type="number" id="${id}-rx" value="${d.rx}" min="0"></div>
+    <div class="field"><label>HSA eligible?</label>
+      <select id="${id}-hsa">
+        <option value="0"${!d.hsa?' selected':''}>No</option>
+        <option value="1"${d.hsa?' selected':''}>Yes</option>
+      </select>
+    </div>`;
+
+  const wrap=document.getElementById('plans-wrap');
+  wrap.insertBefore(card,document.getElementById('add-btn'));
+  card.querySelectorAll('input[type=number],select').forEach(el=>el.addEventListener('input',calc));
+  updateRemoveButtons();
+  calc();
+}
+
+function removePlan(id){
+  const idx=plans.findIndex(p=>p.id===id);
+  if(idx===-1) return;
+  plans.splice(idx,1);
+  document.getElementById('card-'+id).remove();
+  updateRemoveButtons();
+  calc();
+}
+
+function updateRemoveButtons(){
+  document.querySelectorAll('.remove-btn').forEach(b=>b.style.display=plans.length>1?'block':'none');
+}
+
+// boot with 2 plans
+addPlan({prem:300,ded:1500,oop:5000,coins:20,copay:25,spec:50,rx:15,hsa:0});
+addPlan({prem:180,ded:3000,oop:7500,coins:20,copay:35,spec:70,rx:20,hsa:0});
+document.getElementById('p0-name').value='Plan A';
+document.getElementById('p1-name').value='Plan B';
+calc();
+</script>
+</body>
+</html>
