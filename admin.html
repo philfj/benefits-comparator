@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Benefits Comparator — Admin Link Generator</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f5;color:#1a1a1a;padding:2rem 1rem}
+.wrap{max-width:860px;margin:0 auto}
+h1{font-size:1.3rem;font-weight:600;margin-bottom:.25rem}
+.subtitle{font-size:.85rem;color:#666;margin-bottom:2rem}
+h2{font-size:.95rem;font-weight:600;margin:1.5rem 0 .75rem;padding-bottom:.4rem;border-bottom:1px solid #ddd}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.row.trio{grid-template-columns:1fr 1fr 1fr}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:.78rem;color:#555;font-weight:500}
+.field input,.field select{padding:.4rem .6rem;border:1px solid #ccc;border-radius:5px;font-size:.88rem;background:#fff}
+.field input:focus,.field select:focus{outline:none;border-color:#378ADD}
+.plan-block{background:#fff;border:1px solid #ddd;border-radius:8px;padding:1rem;margin-bottom:12px;position:relative}
+.plan-block-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem}
+.plan-block-header span{font-size:.8rem;font-weight:600;color:#555}
+.remove-plan-btn{background:none;border:none;cursor:pointer;color:#aaa;font-size:.9rem;padding:0 4px}
+.remove-plan-btn:hover{color:#c0392b}
+.add-plan-btn{display:block;width:100%;padding:.55rem;border:1px dashed #ccc;border-radius:6px;background:none;cursor:pointer;color:#666;font-size:.85rem;margin-bottom:1.5rem;transition:all .15s}
+.add-plan-btn:hover{border-color:#378ADD;color:#185FA5;background:#f4f8fd}
+.lock-row{display:flex;align-items:center;gap:8px;margin-bottom:.75rem}
+.lock-row label{font-size:.82rem;color:#555}
+.actions{display:flex;gap:10px;margin-bottom:1.5rem}
+.btn{padding:.55rem 1.4rem;border-radius:6px;border:none;cursor:pointer;font-size:.88rem;font-weight:600;transition:all .15s}
+.btn-primary{background:#185FA5;color:#fff}
+.btn-primary:hover{background:#1450a0}
+.btn-secondary{background:#fff;border:1px solid #ccc;color:#333}
+.btn-secondary:hover{background:#f0f0f0}
+.btn-secondary.copied{background:#E1F5EE;color:#0F6E56;border-color:#1D9E75}
+.output-box{background:#fff;border:1px solid #ddd;border-radius:8px;padding:1rem;margin-bottom:1rem}
+.output-box label{font-size:.78rem;color:#555;font-weight:500;display:block;margin-bottom:.4rem}
+.output-box textarea{width:100%;padding:.4rem .6rem;border:1px solid #ddd;border-radius:5px;font-size:.78rem;font-family:monospace;resize:vertical;color:#333;background:#fafafa;min-height:60px}
+.output-box .url-display{font-size:.78rem;font-family:monospace;word-break:break-all;color:#185FA5;background:#f0f6ff;border:1px solid #b8d4f0;border-radius:5px;padding:.5rem .75rem;margin-bottom:.6rem;min-height:2.5rem}
+.hint{font-size:.75rem;color:#888;margin-top:.25rem}
+.section-divider{border:none;border-top:1px solid #e0e0e0;margin:1.5rem 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Benefits Comparator — Admin Link Generator</h1>
+  <p class="subtitle">Fill in company details and plan values, then generate a shareable URL for employees.</p>
+
+  <h2>Company details</h2>
+  <div class="row trio">
+    <div class="field"><label>Company name *</label><input type="text" id="company" placeholder="Acme Corp"></div>
+    <div class="field"><label>Logo URL (optional)</label><input type="url" id="logo" placeholder="https://..."></div>
+    <div class="field"><label>Benefits contact email</label><input type="email" id="contact" placeholder="benefits@acme.com"></div>
+  </div>
+
+  <hr class="section-divider">
+  <h2>Plans</h2>
+  <div id="plans-container"></div>
+  <button class="add-plan-btn" onclick="addPlanRow()">+ Add another plan</button>
+
+  <div class="actions">
+    <button class="btn btn-primary" onclick="generate()">Generate link</button>
+  </div>
+
+  <div id="output" style="display:none">
+    <div class="output-box">
+      <label>Shareable URL</label>
+      <div class="url-display" id="url-display"></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-secondary" id="copy-btn" onclick="copyLink()">Copy link</button>
+        <a id="open-link" href="#" target="_blank" class="btn btn-secondary" style="text-decoration:none">Open in new tab</a>
+      </div>
+    </div>
+    <div class="output-box">
+      <label>Raw JSON (for reference)</label>
+      <textarea id="json-display" readonly></textarea>
+    </div>
+  </div>
+</div>
+
+<script>
+let planRowCount = 0;
+
+function addPlanRow(defaults) {
+  defaults = defaults || {};
+  const idx = planRowCount++;
+  const block = document.createElement('div');
+  block.className = 'plan-block';
+  block.id = 'plan-' + idx;
+  block.innerHTML = `
+    <div class="plan-block-header">
+      <span>Plan ${idx + 1}</span>
+      <button class="remove-plan-btn" onclick="removePlanRow('plan-${idx}')" title="Remove">✕</button>
+    </div>
+    <div class="lock-row">
+      <input type="checkbox" id="locked-${idx}" ${defaults.locked ? 'checked' : ''}>
+      <label for="locked-${idx}">Locked (employee cannot edit or remove)</label>
+    </div>
+    <div class="row">
+      <div class="field"><label>Plan name *</label><input type="text" id="pname-${idx}" placeholder="PPO Plus" value="${esc(defaults.name||'')}"></div>
+      <div class="field"><label>Monthly premium ($)</label><input type="number" id="prem-${idx}" min="0" value="${defaults.prem||''}"></div>
+    </div>
+    <div class="row trio">
+      <div class="field"><label>Deductible — individual ($)</label><input type="number" id="ded-${idx}" min="0" value="${defaults.ded||''}"></div>
+      <div class="field"><label>Deductible — family ($)</label><input type="number" id="ded_family-${idx}" min="0" value="${defaults.ded_family||''}"><span class="hint">Leave blank to use individual value</span></div>
+      <div class="field"><label>Coinsurance (%)</label><input type="number" id="coins-${idx}" min="0" max="100" value="${defaults.coins!=null?defaults.coins:''}"></div>
+    </div>
+    <div class="row trio">
+      <div class="field"><label>OOP max — individual ($)</label><input type="number" id="oop-${idx}" min="0" value="${defaults.oop||''}"></div>
+      <div class="field"><label>OOP max — family ($)</label><input type="number" id="oop_family-${idx}" min="0" value="${defaults.oop_family||''}"><span class="hint">Leave blank to use individual value</span></div>
+      <div class="field"><label>HSA eligible?</label>
+        <select id="hsa-${idx}">
+          <option value="0" ${!defaults.hsa?'selected':''}>No</option>
+          <option value="1" ${defaults.hsa?'selected':''}>Yes</option>
+        </select>
+      </div>
+    </div>
+    <div class="row trio">
+      <div class="field"><label>Primary care copay ($)</label><input type="number" id="copay-${idx}" min="0" value="${defaults.copay||''}"></div>
+      <div class="field"><label>Specialist copay ($)</label><input type="number" id="spec-${idx}" min="0" value="${defaults.spec||''}"></div>
+      <div class="field"><label>Generic Rx copay ($)</label><input type="number" id="rx-${idx}" min="0" value="${defaults.rx||''}"></div>
+    </div>`;
+  document.getElementById('plans-container').appendChild(block);
+}
+
+function removePlanRow(id) {
+  const el = document.getElementById(id);
+  if (el) el.remove();
+}
+
+function numOrNull(id) {
+  const v = document.getElementById(id);
+  if (!v) return null;
+  const n = parseFloat(v.value);
+  return isNaN(n) ? null : n;
+}
+
+function strOrNull(id) {
+  const v = document.getElementById(id);
+  if (!v) return null;
+  return v.value.trim() || null;
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function generate() {
+  const company = document.getElementById('company').value.trim();
+  if (!company) { alert('Company name is required.'); return; }
+
+  const cfg = { company };
+  const logo = document.getElementById('logo').value.trim();
+  if (logo) cfg.logo = logo;
+  const contact = document.getElementById('contact').value.trim();
+  if (contact) cfg.contact = contact;
+
+  cfg.plans = [];
+  document.querySelectorAll('.plan-block').forEach(block => {
+    const idx = block.id.replace('plan-', '');
+    const name = document.getElementById('pname-' + idx)?.value.trim();
+    if (!name) return; // skip unnamed plans
+    const plan = {
+      name,
+      locked: document.getElementById('locked-' + idx)?.checked || false,
+      prem:  numOrNull('prem-'  + idx) ?? 0,
+      ded:   numOrNull('ded-'   + idx) ?? 0,
+      oop:   numOrNull('oop-'   + idx) ?? 0,
+      coins: numOrNull('coins-' + idx) ?? 0,
+      copay: numOrNull('copay-' + idx) ?? 0,
+      spec:  numOrNull('spec-'  + idx) ?? 0,
+      rx:    numOrNull('rx-'    + idx) ?? 0,
+      hsa:   parseInt(document.getElementById('hsa-' + idx)?.value || '0'),
+    };
+    const dedFam  = numOrNull('ded_family-'  + idx);
+    const oopFam  = numOrNull('oop_family-'  + idx);
+    if (dedFam != null) plan.ded_family = dedFam;
+    if (oopFam != null) plan.oop_family = oopFam;
+    cfg.plans.push(plan);
+  });
+
+  const json = JSON.stringify(cfg, null, 2);
+  const encoded = btoa(JSON.stringify(cfg));
+  const url = window.location.origin + '/?' + new URLSearchParams({ config: encoded }).toString();
+
+  document.getElementById('json-display').value = json;
+  document.getElementById('url-display').textContent = url;
+  document.getElementById('open-link').href = url;
+  document.getElementById('output').style.display = 'block';
+  document.getElementById('copy-btn').textContent = 'Copy link';
+  document.getElementById('copy-btn').classList.remove('copied');
+  document.getElementById('output').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function copyLink() {
+  const url = document.getElementById('url-display').textContent;
+  const btn = document.getElementById('copy-btn');
+  navigator.clipboard.writeText(url).then(() => {
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy link'; btn.classList.remove('copied'); }, 2000);
+  }).catch(() => {
+    btn.textContent = 'Copy manually';
+    setTimeout(() => { btn.textContent = 'Copy link'; }, 2000);
+  });
+}
+
+// Start with two plan rows
+addPlanRow({ name: '', locked: true,  prem: 280, ded: 1500, ded_family: 3000, oop: 5000,  oop_family: 10000, coins: 20, copay: 25, spec: 50, rx: 15, hsa: 0 });
+addPlanRow({ name: '', locked: true,  prem: 180, ded: 3000, ded_family: 6000, oop: 7500,  oop_family: 15000, coins: 20, copay: 35, spec: 70, rx: 20, hsa: 1 });
+</script>
+</body>
+</html>

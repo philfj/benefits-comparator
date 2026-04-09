@@ -113,12 +113,23 @@ footer{margin-top:1.5rem;font-size:.72rem;color:var(--hint);text-align:center;li
 .file-item-status.loading{color:#378ADD}
 .file-item-status.success{color:#0F6E56;font-weight:600}
 .file-item-status.error{color:#c0392b}
+
+.enterprise-header{display:flex;align-items:center;gap:1rem;margin-bottom:.3rem}
+.enterprise-logo{max-height:44px;max-width:130px;object-fit:contain}
+.enterprise-prompt{background:#E6F1FB;border:1px solid #b8d4f0;border-radius:var(--rad-sm);padding:.6rem 1rem;font-size:.82rem;color:#185FA5;margin-bottom:1rem}
+.locked-badge{font-size:.68rem;color:var(--hint);font-style:italic;white-space:nowrap}
+.plan-card.locked input,.plan-card.locked select{background:#f5f4f0;color:var(--muted);cursor:default}
+.contact-bar{margin-top:2.5rem;padding-top:1.5rem;border-top:1px solid var(--border);text-align:center}
+.contact-bar p{font-size:.82rem;color:var(--muted);margin-bottom:.4rem}
+.contact-link{font-size:.88rem;font-weight:600;color:#185FA5}
 </style>
 </head>
 <body>
 <div class="app">
-  <h1>Benefits Comparator</h1>
-  <p class="subtitle">Add your plans · adjust expected usage · see them ranked cheapest to most expensive</p>
+  <div id="app-brand">
+    <h1>Benefits Comparator</h1>
+    <p class="subtitle">Add your plans · adjust expected usage · see them ranked cheapest to most expensive</p>
+  </div>
 
   <div class="section-title">household</div>
   <div class="household-row">
@@ -130,6 +141,7 @@ footer{margin-top:1.5rem;font-size:.72rem;color:var(--hint);text-align:center;li
     </div>
   </div>
 
+  <div id="enterprise-prompt" class="enterprise-prompt" style="display:none">Comparing your company plans — add a spouse or outside plan to compare alongside them.</div>
   <div class="section-title">upload benefits documents</div>
   <div class="drop-zone" id="drop-zone">
     <input type="file" id="zone-input" accept=".pdf,image/*" multiple style="display:none" onchange="handleZoneFiles(this.files)">
@@ -221,14 +233,14 @@ footer{margin-top:1.5rem;font-size:.72rem;color:var(--hint);text-align:center;li
   <div id="hsa-box" class="hsa-box" style="display:none"></div>
   <div id="flag-notes" class="notes" style="display:none"></div>
 
-  <div class="donate-bar">
+  <div id="donate-bar" class="donate-bar">
     <p>Found this useful? No pressure, but coffee is always appreciated ☕
       <button class="share-btn" id="share-btn" onclick="shareLink()">Share this tool</button>
     </p>
     <!-- REPLACE THE URL BELOW WITH YOUR BUY ME A COFFEE URL -->
     <a class="donate-btn" href="https://buymeacoffee.com/philipfj108" target="_blank" rel="noopener">Buy me a coffee</a>
   </div>
-  <footer>Estimates only · not financial or benefits advice · verify with your plan documents<br>Built with Claude · <a href="https://claude.ai" style="color:var(--hint)">claude.ai</a></footer>
+  <footer id="app-footer">Estimates only · not financial or benefits advice · verify with your plan documents<br>Built with Claude · <a href="https://claude.ai" style="color:var(--hint)">claude.ai</a></footer>
 </div>
 
 <script>
@@ -246,6 +258,8 @@ let planCounter=0;
 const flags={preg:false,chronic:false,healthy:false,mental:false,network:false,fsa:false};
 let mode='typical';
 let household='single';
+
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 const HH_HSA={single:{max:4300,def:2000},married:{max:8550,def:4000},family:{max:8550,def:4000}};
 const HH_WORST_OTHER={single:5000,married:8000,family:12000};
@@ -435,34 +449,38 @@ function calc(){
   else fn.style.display='none';
 }
 
-function addPlan(d,name,tiers){
+function addPlan(d,name,tiers,lockedBy){
   d=d||{prem:200,ded:2000,oop:6000,coins:20,copay:30,spec:60,rx:15,hsa:0};
   const id='p'+planCounter++;
   const letter=nextLetter();
   const col=PALETTE[plans.length%PALETTE.length];
-  const plan={id,letter,col,tiers:tiers||null};
+  const plan={id,letter,col,tiers:tiers||null,lockedBy:lockedBy||null};
   plans.push(plan);
 
-  const displayName=name||(tiers&&tiers.plan_name)||('Plan '+letter);
+  const displayName=esc(name||(tiers&&tiers.plan_name)||('Plan '+letter));
+  const dis=lockedBy?' disabled':'';
+  const headerRight=lockedBy
+    ?`<span class="locked-badge">provided by ${esc(lockedBy)}</span>`
+    :`<button class="remove-btn" onclick="removePlan('${id}')" title="Remove plan" style="display:${plans.length>1?'block':'none'}">✕</button>`;
 
   const card=document.createElement('div');
-  card.className='plan-card';
+  card.className='plan-card'+(lockedBy?' locked':'');
   card.id='card-'+id;
   card.style.borderTop=`3px solid ${col.pm}`;
   card.innerHTML=`
     <div class="plan-card-top">
-      <input class="plan-name-input" id="${id}-name" value="${displayName}" style="color:${col.pc};border-bottom-color:${col.pc}" oninput="calc()">
-      <button class="remove-btn" onclick="removePlan('${id}')" title="Remove plan" style="display:${plans.length>1?'block':'none'}">✕</button>
+      <input class="plan-name-input" id="${id}-name" value="${displayName}" style="color:${col.pc};border-bottom-color:${col.pc}" oninput="calc()"${lockedBy?' readonly':''}>
+      ${headerRight}
     </div>
-    <div class="field"><label>Monthly premium ($)</label><input type="number" id="${id}-prem" value="${d.prem}" min="0"></div>
-    <div class="field"><label>Annual deductible ($)</label><input type="number" id="${id}-ded" value="${d.ded}" min="0"></div>
-    <div class="field"><label>Out-of-pocket max ($)</label><input type="number" id="${id}-oop" value="${d.oop}" min="0"></div>
-    <div class="field"><label>Coinsurance after deductible (%)</label><input type="number" id="${id}-coins" value="${d.coins}" min="0" max="100"></div>
-    <div class="field"><label>Primary care copay ($)</label><input type="number" id="${id}-copay" value="${d.copay}" min="0"></div>
-    <div class="field"><label>Specialist copay ($)</label><input type="number" id="${id}-spec" value="${d.spec}" min="0"></div>
-    <div class="field"><label>Generic Rx copay ($)</label><input type="number" id="${id}-rx" value="${d.rx}" min="0"></div>
+    <div class="field"><label>Monthly premium ($)</label><input type="number" id="${id}-prem" value="${d.prem}" min="0"${dis}></div>
+    <div class="field"><label>Annual deductible ($)</label><input type="number" id="${id}-ded" value="${d.ded}" min="0"${dis}></div>
+    <div class="field"><label>Out-of-pocket max ($)</label><input type="number" id="${id}-oop" value="${d.oop}" min="0"${dis}></div>
+    <div class="field"><label>Coinsurance after deductible (%)</label><input type="number" id="${id}-coins" value="${d.coins}" min="0" max="100"${dis}></div>
+    <div class="field"><label>Primary care copay ($)</label><input type="number" id="${id}-copay" value="${d.copay}" min="0"${dis}></div>
+    <div class="field"><label>Specialist copay ($)</label><input type="number" id="${id}-spec" value="${d.spec}" min="0"${dis}></div>
+    <div class="field"><label>Generic Rx copay ($)</label><input type="number" id="${id}-rx" value="${d.rx}" min="0"${dis}></div>
     <div class="field"><label>HSA eligible?</label>
-      <select id="${id}-hsa">
+      <select id="${id}-hsa"${dis}>
         <option value="0"${!d.hsa?' selected':''}>No</option>
         <option value="1"${d.hsa?' selected':''}>Yes</option>
       </select>
@@ -471,7 +489,7 @@ function addPlan(d,name,tiers){
 
   const wrap=document.getElementById('plans-wrap');
   wrap.insertBefore(card,document.getElementById('add-btn'));
-  card.querySelectorAll('input[type=number],select').forEach(el=>el.addEventListener('input',calc));
+  if(!lockedBy) card.querySelectorAll('input[type=number],select').forEach(el=>el.addEventListener('input',calc));
   if(tiers) applyTierToCard(plan);
   updateRemoveButtons();
   calc();
@@ -564,6 +582,80 @@ async function handleZoneFiles(files){
   setTimeout(()=>{if(!queue.children.length)queue.style.display='none';},3500);
 }
 
+// enterprise / HR mode
+function loadEnterpriseConfig(){
+  try{
+    const param=new URLSearchParams(window.location.search).get('config');
+    if(!param) return null;
+    const cfg=JSON.parse(atob(param));
+    applyEnterpriseMode(cfg);
+    return cfg;
+  }catch(e){
+    console.warn('Invalid config param:',e);
+    return null;
+  }
+}
+
+function applyEnterpriseMode(cfg){
+  // Replace brand header
+  const brand=document.getElementById('app-brand');
+  const header=document.createElement('div');
+  header.className='enterprise-header';
+  if(cfg.logo){
+    const img=document.createElement('img');
+    img.src=cfg.logo;
+    img.className='enterprise-logo';
+    img.alt=cfg.company||'';
+    header.appendChild(img);
+  }
+  const textDiv=document.createElement('div');
+  const h1=document.createElement('h1');
+  h1.textContent=cfg.company||'Benefits Comparator';
+  const sub=document.createElement('p');
+  sub.className='subtitle';
+  sub.textContent='Benefits comparison · '+new Date().getFullYear()+' enrollment';
+  textDiv.append(h1,sub);
+  header.appendChild(textDiv);
+  brand.replaceChildren(header);
+
+  // Show employee prompt
+  document.getElementById('enterprise-prompt').style.display='block';
+
+  // Load plans from config
+  (cfg.plans||[]).forEach(p=>{
+    const tiers={
+      premium_monthly_individual:p.prem,
+      premium_monthly_family:p.prem,
+      deductible_individual:p.ded,
+      deductible_family:p.ded_family!=null?p.ded_family:p.ded,
+      oop_max_individual:p.oop,
+      oop_max_family:p.oop_family!=null?p.oop_family:p.oop,
+      coinsurance_pct:p.coins,
+      copay_primary:p.copay,
+      copay_specialist:p.spec,
+      copay_rx_generic:p.rx,
+    };
+    addPlan(
+      {prem:p.prem,ded:p.ded,oop:p.oop,coins:p.coins,copay:p.copay,spec:p.spec,rx:p.rx,hsa:p.hsa||0},
+      p.name,
+      tiers,
+      p.locked?(cfg.company||'your employer'):null
+    );
+  });
+
+  // Replace donate bar
+  const bar=document.getElementById('donate-bar');
+  if(cfg.contact){
+    bar.className='contact-bar';
+    bar.innerHTML=`<p>Questions about your benefits?</p><a class="contact-link" href="mailto:${esc(cfg.contact)}">${esc(cfg.contact)}</a>`;
+  }else{
+    bar.style.display='none';
+  }
+
+  // Hide "Built with Claude" credit (white-label)
+  document.getElementById('app-footer').textContent='Estimates only · not financial or benefits advice · verify with your plan documents';
+}
+
 // drop zone events
 (function(){
   const dz=document.getElementById('drop-zone');
@@ -577,9 +669,11 @@ async function handleZoneFiles(files){
   });
 })();
 
-// boot with 2 example plans
-addPlan({prem:300,ded:1500,oop:5000,coins:20,copay:25,spec:50,rx:15,hsa:0},'Plan A');
-addPlan({prem:180,ded:3000,oop:7500,coins:20,copay:35,spec:70,rx:20,hsa:0},'Plan B');
+// boot
+if(!loadEnterpriseConfig()){
+  addPlan({prem:300,ded:1500,oop:5000,coins:20,copay:25,spec:50,rx:15,hsa:0},'Plan A');
+  addPlan({prem:180,ded:3000,oop:7500,coins:20,copay:35,spec:70,rx:20,hsa:0},'Plan B');
+}
 calc();
 </script>
 </body>
