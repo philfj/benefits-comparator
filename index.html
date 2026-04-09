@@ -101,13 +101,18 @@ h1{font-size:1.4rem;font-weight:600;margin-bottom:.2rem}
 .coverage-note{font-size:.72rem;color:var(--hint);margin-top:.2rem;font-style:italic}
 footer{margin-top:1.5rem;font-size:.72rem;color:var(--hint);text-align:center;line-height:1.8}
 
-.upload-row{display:flex;align-items:center;gap:8px;margin-top:.9rem;padding-top:.7rem;border-top:1px solid var(--border)}
-.upload-btn{display:inline-flex;align-items:center;gap:5px;padding:.38rem .75rem;border:1px dashed var(--border2);border-radius:var(--rad-sm);font-size:.78rem;color:var(--muted);cursor:pointer;background:none;transition:all .15s;white-space:nowrap}
-.upload-btn:hover{border-color:#378ADD;color:#185FA5;background:#f4f8fd}
-.upload-btn:disabled{opacity:.6;cursor:default}
-.upload-status{font-size:.78rem;line-height:1.3}
-.upload-status.success{color:#0F6E56;font-weight:700}
-.upload-status.error{color:#c0392b;font-size:.72rem}
+.drop-zone{border:2px dashed var(--border2);border-radius:var(--rad);padding:2rem 1.5rem;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:1.5rem;background:var(--surface)}
+.drop-zone:hover,.drop-zone.dragover{border-color:#378ADD;background:#f4f8fd}
+.drop-zone-icon{font-size:1.8rem;margin-bottom:.4rem}
+.drop-zone-text{font-size:.9rem;color:var(--muted);margin-bottom:.2rem}
+.drop-zone-hint{font-size:.75rem;color:var(--hint)}
+.file-queue{display:flex;flex-direction:column;gap:6px;margin-bottom:1rem}
+.file-item{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--rad-sm);padding:.5rem .75rem;font-size:.8rem}
+.file-item-name{flex:1;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file-item-status{font-size:.75rem;white-space:nowrap}
+.file-item-status.loading{color:#378ADD}
+.file-item-status.success{color:#0F6E56;font-weight:600}
+.file-item-status.error{color:#c0392b}
 </style>
 </head>
 <body>
@@ -124,6 +129,15 @@ footer{margin-top:1.5rem;font-size:.72rem;color:var(--hint);text-align:center;li
       <button class="hh-btn" id="hh-family" onclick="setHousehold('family')">Family</button>
     </div>
   </div>
+
+  <div class="section-title">upload benefits documents</div>
+  <div class="drop-zone" id="drop-zone">
+    <input type="file" id="zone-input" accept=".pdf,image/*" multiple style="display:none" onchange="handleZoneFiles(this.files)">
+    <div class="drop-zone-icon">📄</div>
+    <div class="drop-zone-text">Drop your benefits docs here, or click to browse</div>
+    <div class="drop-zone-hint">Accepts PDF and image files · one plan card created per file</div>
+  </div>
+  <div class="file-queue" id="file-queue" style="display:none"></div>
 
   <div class="section-title">plans</div>
   <div class="plans-wrap" id="plans-wrap">
@@ -248,6 +262,7 @@ function setHousehold(hh){
   document.getElementById('v-hsa').textContent='$'+parseInt(sl.value).toLocaleString();
   // update coverage notes on all plan cards
   document.querySelectorAll('.coverage-note').forEach(el=>el.textContent=HH_COVERAGE_NOTE[hh]);
+  applyTierToAllCards();
   calc();
 }
 
@@ -420,12 +435,15 @@ function calc(){
   else fn.style.display='none';
 }
 
-function addPlan(d){
+function addPlan(d,name,tiers){
   d=d||{prem:200,ded:2000,oop:6000,coins:20,copay:30,spec:60,rx:15,hsa:0};
   const id='p'+planCounter++;
   const letter=nextLetter();
   const col=PALETTE[plans.length%PALETTE.length];
-  plans.push({id,letter,col});
+  const plan={id,letter,col,tiers:tiers||null};
+  plans.push(plan);
+
+  const displayName=name||(tiers&&tiers.plan_name)||('Plan '+letter);
 
   const card=document.createElement('div');
   card.className='plan-card';
@@ -433,7 +451,7 @@ function addPlan(d){
   card.style.borderTop=`3px solid ${col.pm}`;
   card.innerHTML=`
     <div class="plan-card-top">
-      <input class="plan-name-input" id="${id}-name" value="Plan ${letter}" style="color:${col.pc};border-bottom-color:${col.pc}" oninput="calc()">
+      <input class="plan-name-input" id="${id}-name" value="${displayName}" style="color:${col.pc};border-bottom-color:${col.pc}" oninput="calc()">
       <button class="remove-btn" onclick="removePlan('${id}')" title="Remove plan" style="display:${plans.length>1?'block':'none'}">✕</button>
     </div>
     <div class="field"><label>Monthly premium ($)</label><input type="number" id="${id}-prem" value="${d.prem}" min="0"></div>
@@ -449,18 +467,12 @@ function addPlan(d){
         <option value="1"${d.hsa?' selected':''}>Yes</option>
       </select>
     </div>
-    <p class="coverage-note">${HH_COVERAGE_NOTE[household]}</p>
-    <div class="upload-row">
-      <input type="file" id="${id}-file-input" accept=".pdf,image/*" style="display:none" onchange="uploadDoc('${id}',this)">
-      <button class="upload-btn" id="${id}-upload-btn" onclick="document.getElementById('${id}-file-input').click()" type="button">
-        <span>📄</span><span id="${id}-upload-label">Upload benefits doc</span>
-      </button>
-      <span class="upload-status" id="${id}-upload-status"></span>
-    </div>`;
+    <p class="coverage-note">${HH_COVERAGE_NOTE[household]}</p>`;
 
   const wrap=document.getElementById('plans-wrap');
   wrap.insertBefore(card,document.getElementById('add-btn'));
   card.querySelectorAll('input[type=number],select').forEach(el=>el.addEventListener('input',calc));
+  if(tiers) applyTierToCard(plan);
   updateRemoveButtons();
   calc();
 }
@@ -487,58 +499,87 @@ function fileToBase64(file){
   });
 }
 
-async function uploadDoc(planId,input){
-  const file=input.files[0];
-  if(!file) return;
-
-  const btn=document.getElementById(planId+'-upload-btn');
-  const label=document.getElementById(planId+'-upload-label');
-  const status=document.getElementById(planId+'-upload-status');
-
-  btn.disabled=true;
-  label.textContent='Extracting…';
-  status.textContent='';
-  status.className='upload-status';
-
-  try{
-    const base64=await fileToBase64(file);
-    const res=await fetch('/api/extract-benefits',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({file_data:base64,media_type:file.type}),
-    });
-    const data=await res.json();
-    if(!res.ok) throw new Error(data.error||'Extraction failed');
-
-    const MAP={prem:'premium_monthly',ded:'deductible',oop:'oop_max',
-               coins:'coinsurance_pct',copay:'copay_primary',
-               spec:'copay_specialist',rx:'copay_rx_generic'};
-    Object.entries(MAP).forEach(([field,key])=>{
-      if(data[key]!=null){
-        const el=document.getElementById(planId+'-'+field);
-        if(el) el.value=data[key];
-      }
-    });
-    calc();
-    label.textContent='Upload benefits doc';
-    status.textContent='✓';
-    status.className='upload-status success';
-    setTimeout(()=>{status.textContent='';status.className='upload-status'},3000);
-  }catch(err){
-    label.textContent='Upload benefits doc';
-    status.textContent=err.message||'Failed';
-    status.className='upload-status error';
-  }
-
-  btn.disabled=false;
-  input.value='';
+function applyTierToCard(plan){
+  if(!plan.tiers) return;
+  const fam=household!=='single';
+  const t=plan.tiers;
+  const vals={
+    prem: fam?t.premium_monthly_family:t.premium_monthly_individual,
+    ded:  fam?t.deductible_family:t.deductible_individual,
+    oop:  fam?(t.oop_max_family??t.oop_max_family_):t.oop_max_individual,
+    coins:t.coinsurance_pct,
+    copay:t.copay_primary,
+    spec: t.copay_specialist,
+    rx:   t.copay_rx_generic,
+  };
+  Object.entries(vals).forEach(([field,val])=>{
+    if(val!=null){const el=document.getElementById(plan.id+'-'+field);if(el)el.value=val;}
+  });
 }
 
-// boot with 2 plans
-addPlan({prem:300,ded:1500,oop:5000,coins:20,copay:25,spec:50,rx:15,hsa:0});
-addPlan({prem:180,ded:3000,oop:7500,coins:20,copay:35,spec:70,rx:20,hsa:0});
-document.getElementById('p0-name').value='Plan A';
-document.getElementById('p1-name').value='Plan B';
+function applyTierToAllCards(){
+  plans.forEach(p=>applyTierToCard(p));
+}
+
+async function handleZoneFiles(files){
+  if(!files||!files.length) return;
+  const queue=document.getElementById('file-queue');
+  queue.style.display='flex';
+
+  await Promise.all(Array.from(files).map(async file=>{
+    const item=document.createElement('div');
+    item.className='file-item';
+    const nameEl=document.createElement('span');
+    nameEl.className='file-item-name';
+    nameEl.textContent=file.name;
+    const statusEl=document.createElement('span');
+    statusEl.className='file-item-status loading';
+    statusEl.textContent='Extracting…';
+    item.append(nameEl,statusEl);
+    queue.appendChild(item);
+
+    try{
+      const base64=await fileToBase64(file);
+      const res=await fetch('/api/extract-benefits',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({file_data:base64,media_type:file.type}),
+      });
+      const data=await res.json();
+      if(!res.ok) throw new Error(data.error||'Extraction failed');
+
+      const planName=data.plan_name||file.name.replace(/\.[^.]+$/,'');
+      addPlan({prem:0,ded:0,oop:0,coins:0,copay:0,spec:0,rx:0,hsa:0},planName,data);
+
+      statusEl.textContent='✓ Added';
+      statusEl.className='file-item-status success';
+      setTimeout(()=>item.remove(),3000);
+    }catch(err){
+      statusEl.textContent=err.message||'Failed';
+      statusEl.className='file-item-status error';
+    }
+  }));
+
+  document.getElementById('zone-input').value='';
+  setTimeout(()=>{if(!queue.children.length)queue.style.display='none';},3500);
+}
+
+// drop zone events
+(function(){
+  const dz=document.getElementById('drop-zone');
+  dz.addEventListener('click',()=>document.getElementById('zone-input').click());
+  dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('dragover');});
+  dz.addEventListener('dragleave',()=>dz.classList.remove('dragover'));
+  dz.addEventListener('drop',e=>{
+    e.preventDefault();
+    dz.classList.remove('dragover');
+    handleZoneFiles(e.dataTransfer.files);
+  });
+})();
+
+// boot with 2 example plans
+addPlan({prem:300,ded:1500,oop:5000,coins:20,copay:25,spec:50,rx:15,hsa:0},'Plan A');
+addPlan({prem:180,ded:3000,oop:7500,coins:20,copay:35,spec:70,rx:20,hsa:0},'Plan B');
 calc();
 </script>
 </body>

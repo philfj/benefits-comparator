@@ -1,6 +1,9 @@
 const SYSTEM_PROMPT =
   'You are a benefits document parser. Extract health insurance plan details and return ONLY valid JSON with these exact keys: ' +
-  'premium_monthly, deductible, oop_max, coinsurance_pct, copay_primary, copay_specialist, copay_rx_generic. ' +
+  'plan_name, premium_monthly_individual, premium_monthly_family, ' +
+  'deductible_individual, deductible_family, ' +
+  'oop_max_individual, oop_max_family, ' +
+  'coinsurance_pct, copay_primary, copay_specialist, copay_rx_generic. ' +
   'If a field is not found return null. ' +
   'Return ONLY a raw JSON object. No markdown, no code fences, no explanation. Just the JSON.';
 
