@@ -1,7 +1,8 @@
 const SYSTEM_PROMPT =
   'You are a benefits document parser. Extract health insurance plan details and return ONLY valid JSON with these exact keys: ' +
   'premium_monthly, deductible, oop_max, coinsurance_pct, copay_primary, copay_specialist, copay_rx_generic. ' +
-  'If a field is not found return null. No explanation, no markdown, just the JSON object.';
+  'If a field is not found return null. ' +
+  'Return ONLY a raw JSON object. No markdown, no code fences, no explanation. Just the JSON.';
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
@@ -65,14 +66,14 @@ module.exports = async (req, res) => {
   }
 
   const apiData = await apiResponse.json();
-  const rawText = apiData.content?.[0]?.text || '';
+  const text = apiData.content?.[0]?.text || '';
 
   let parsed;
   try {
-    const clean = rawText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+    const clean = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     parsed = JSON.parse(clean);
   } catch {
-    return res.status(422).json({ error: 'Could not parse model response as JSON', raw: rawText });
+    return res.status(422).json({ error: 'Could not parse model response as JSON', raw: text });
   }
 
   return res.status(200).json(parsed);
