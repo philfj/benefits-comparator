@@ -38,6 +38,10 @@ h2{font-size:.95rem;font-weight:600;margin:1.5rem 0 .75rem;padding-bottom:.4rem;
 .output-box textarea{width:100%;padding:.4rem .6rem;border:1px solid #ddd;border-radius:5px;font-size:.78rem;font-family:monospace;resize:vertical;color:#333;background:#fafafa;min-height:60px}
 .output-box .url-display{font-size:.78rem;font-family:monospace;word-break:break-all;color:#185FA5;background:#f0f6ff;border:1px solid #b8d4f0;border-radius:5px;padding:.5rem .75rem;margin-bottom:.6rem;min-height:2.5rem}
 .hint{font-size:.75rem;color:#888;margin-top:.25rem}
+.field input.plan-name{border:2px solid #378ADD;border-radius:5px}
+.field input.plan-name:focus{outline:none;border-color:#185FA5;box-shadow:0 0 0 3px rgba(55,138,221,.15)}
+.field input.plan-name::placeholder{color:#aaa;font-style:italic}
+.field .plan-name-hint{font-size:.75rem;color:#185FA5;margin-top:.3rem}
 .section-divider{border:none;border-top:1px solid #e0e0e0;margin:1.5rem 0}
 </style>
 </head>
@@ -97,7 +101,11 @@ function addPlanRow(defaults) {
       <label for="locked-${idx}">Locked (employee cannot edit or remove)</label>
     </div>
     <div class="row">
-      <div class="field"><label>Plan name *</label><input type="text" id="pname-${idx}" placeholder="PPO Plus" value="${esc(defaults.name||'')}"></div>
+      <div class="field">
+        <label>Plan name</label>
+        <input type="text" id="pname-${idx}" class="plan-name" placeholder="e.g. PPO Plus, HDHP, HMO Select" value="${esc(defaults.name||'')}">
+        <span class="plan-name-hint">Required — this is how the plan will be identified</span>
+      </div>
       <div class="field"><label>Monthly premium ($)</label><input type="number" id="prem-${idx}" min="0" value="${defaults.prem||''}"></div>
     </div>
     <div class="row trio">
@@ -206,8 +214,8 @@ function copyLink() {
 }
 
 // Start with two plan rows
-addPlanRow({ name: '', locked: true,  prem: 280, ded: 1500, ded_family: 3000, oop: 5000,  oop_family: 10000, coins: 20, copay: 25, spec: 50, rx: 15, hsa: 0 });
-addPlanRow({ name: '', locked: true,  prem: 180, ded: 3000, ded_family: 6000, oop: 7500,  oop_family: 15000, coins: 20, copay: 35, spec: 70, rx: 20, hsa: 1 });
+addPlanRow({ locked: true, prem: 280, ded: 1500, ded_family: 3000, oop: 5000,  oop_family: 10000, coins: 20, copay: 25, spec: 50, rx: 15, hsa: 0 });
+addPlanRow({ locked: true, prem: 180, ded: 3000, ded_family: 6000, oop: 7500,  oop_family: 15000, coins: 20, copay: 35, spec: 70, rx: 20, hsa: 1 });
 </script>
 </body>
 </html>
