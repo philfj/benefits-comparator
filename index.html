@@ -623,13 +623,14 @@ function applyEnterpriseMode(cfg){
 
   // Load plans from config
   (cfg.plans||[]).forEach(p=>{
+    const ct=p.coverageTiers||'both';
     const tiers={
       premium_monthly_individual:p.prem,
       premium_monthly_family:p.prem,
       deductible_individual:p.ded,
-      deductible_family:p.ded_family!=null?p.ded_family:p.ded,
+      deductible_family:ct==='single'?p.ded:(p.ded_family!=null?p.ded_family:p.ded),
       oop_max_individual:p.oop,
-      oop_max_family:p.oop_family!=null?p.oop_family:p.oop,
+      oop_max_family:ct==='single'?p.oop:(p.oop_family!=null?p.oop_family:p.oop),
       coinsurance_pct:p.coins,
       copay_primary:p.copay,
       copay_specialist:p.spec,

@@ -108,14 +108,24 @@ function addPlanRow(defaults) {
       </div>
       <div class="field"><label>Monthly premium ($)</label><input type="number" id="prem-${idx}" min="0" value="${defaults.prem||''}"></div>
     </div>
+    <div class="row">
+      <div class="field">
+        <label>Coverage tiers included</label>
+        <select id="ctiers-${idx}" onchange="toggleFamilyFields(${idx})">
+          <option value="both" ${(defaults.coverageTiers||'both')==='both'?'selected':''}>Both (Individual &amp; Family)</option>
+          <option value="single" ${defaults.coverageTiers==='single'?'selected':''}>Single only</option>
+          <option value="family" ${defaults.coverageTiers==='family'?'selected':''}>Family only</option>
+        </select>
+      </div>
+    </div>
     <div class="row trio">
       <div class="field"><label>Deductible — individual ($)</label><input type="number" id="ded-${idx}" min="0" value="${defaults.ded||''}"></div>
-      <div class="field"><label>Deductible — family ($)</label><input type="number" id="ded_family-${idx}" min="0" value="${defaults.ded_family||''}"><span class="hint">Leave blank to use individual value</span></div>
+      <div class="field" id="fam-ded-wrap-${idx}"><label>Family deductible ($)</label><input type="number" id="ded_family-${idx}" min="0" value="${defaults.ded_family||''}"></div>
       <div class="field"><label>Coinsurance (%)</label><input type="number" id="coins-${idx}" min="0" max="100" value="${defaults.coins!=null?defaults.coins:''}"></div>
     </div>
     <div class="row trio">
       <div class="field"><label>OOP max — individual ($)</label><input type="number" id="oop-${idx}" min="0" value="${defaults.oop||''}"></div>
-      <div class="field"><label>OOP max — family ($)</label><input type="number" id="oop_family-${idx}" min="0" value="${defaults.oop_family||''}"><span class="hint">Leave blank to use individual value</span></div>
+      <div class="field" id="fam-oop-wrap-${idx}"><label>Family OOP max ($)</label><input type="number" id="oop_family-${idx}" min="0" value="${defaults.oop_family||''}"></div>
       <div class="field"><label>HSA eligible?</label>
         <select id="hsa-${idx}">
           <option value="0" ${!defaults.hsa?'selected':''}>No</option>
@@ -129,6 +139,14 @@ function addPlanRow(defaults) {
       <div class="field"><label>Generic Rx copay ($)</label><input type="number" id="rx-${idx}" min="0" value="${defaults.rx||''}"></div>
     </div>`;
   document.getElementById('plans-container').appendChild(block);
+  toggleFamilyFields(idx);
+}
+
+function toggleFamilyFields(idx) {
+  const val = document.getElementById('ctiers-' + idx).value;
+  const show = val !== 'single';
+  document.getElementById('fam-ded-wrap-' + idx).style.display = show ? '' : 'none';
+  document.getElementById('fam-oop-wrap-' + idx).style.display = show ? '' : 'none';
 }
 
 function removePlanRow(id) {
@@ -171,6 +189,7 @@ function generate() {
     const plan = {
       name,
       locked: document.getElementById('locked-' + idx)?.checked || false,
+      coverageTiers: document.getElementById('ctiers-' + idx)?.value || 'both',
       prem:  numOrNull('prem-'  + idx) ?? 0,
       ded:   numOrNull('ded-'   + idx) ?? 0,
       oop:   numOrNull('oop-'   + idx) ?? 0,
